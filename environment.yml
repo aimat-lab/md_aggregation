@@ -9,7 +9,9 @@ dependencies:
   - cudatoolkit=11.4.3
   - mdtraj=1.9.9
   - pyemma=2.5.12
+  - mdanalysis
   - openff-toolkit
   - pip:
     - rdkit
     - pycomex
+    - git+https://github.com/ParmEd/ParmEd

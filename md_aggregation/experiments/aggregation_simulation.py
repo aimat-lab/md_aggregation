@@ -1,3 +1,6 @@
+"""
+The base experiment file which implements the aggregation MD simulation using OpenMM.
+"""
 import os
 import sys
 import time
@@ -13,13 +16,14 @@ from pycomex.utils import folder_path, file_namespace
 
 from rdkit import Chem
 import openmm
+import parmed
 from openmm import Platform
+from parmed.openmm import MdcrdReporter
 from openff.toolkit.typing.engines.smirnoff import ForceField as OFF_ForceField
 from openff.toolkit.topology import Molecule, Topology
 from openff.interchange import Interchange
 from openff.interchange.components._packmol import RHOMBIC_DODECAHEDRON, pack_box
 from openff.units import unit as off_unit
-
 
 
 # == SIMULATION PARAMETERS ==
@@ -47,7 +51,7 @@ MOLECULE_CONFIGURATION: Dict[str, dict] = {
     'water': {
         'num': 35000,
         'residue_name': 'HOH',
-        'smiles': '[H][O][H]',
+        'smiles': '[O]([H])[H]',
         'use_rdkit': False,
     },
     'na': {
@@ -80,8 +84,8 @@ FRAME_STRIDE: int = 10_000
 
 # == EXPERIMENT PARAMETERS ==
 
-__DEBUG__ = False
-__TESTING__ = False
+__DEBUG__ = True
+__TESTING__ = True
 
 experiment = Experiment(
     base_path=folder_path(__file__),
@@ -151,6 +155,7 @@ def experiment(e: Experiment):
         e.RAMP_STEPS = 10
         e.EQUILIBRATION_STEPS = 100
         e.PRODUCTION_STEPS = 1001
+        e.FRAME_STRIDE = 10
     
     # ~ Platform information
     # Here we want to make sure that the OpenMM simulation will actually use the CUDA acceleration
@@ -207,11 +212,16 @@ def experiment(e: Experiment):
 
     interchange["vdW"].cutoff = e.NON_BONDED_CUTOFF * off_unit.angstrom
     interchange["Electrostatics"].cutoff = e.NON_BONDED_CUTOFF * off_unit.angstrom
+    
+    e.log('saving the topology file...')
+    topology_path = os.path.join(e.path, 'topology.pdb')
+    #interchange.to_pdb(topology_path)
 
     # ~ Equilibrium Simulation
     # The first part of the simulation consists of a minimization of the energy of the packed system and then 
     # a few ps of equilibration using the NVT ensemble (constant volume simulation).
     
+    e.log('Setting up the simulation...')
     integrator = openmm.LangevinIntegrator(
         0 * openmm.unit.kelvin,
         1 / openmm.unit.picosecond,
@@ -222,6 +232,10 @@ def experiment(e: Experiment):
         combine_nonbonded_forces=False,
         integrator=integrator,
     )
+    
+    positions = simulation.context.getState(getPositions=True).getPositions()
+    with open(topology_path, 'w') as file:
+        openmm.app.PDBFile.writeFile(simulation.topology, positions, file)
     
     e.log('minimizing energy...')
     # https://github.com/openmm/openmm/issues/3736#issuecomment-1217250635
@@ -287,10 +301,14 @@ def experiment(e: Experiment):
     pdb_reporter = openmm.app.PDBReporter(trajectory_path, e.FRAME_STRIDE)
     production_simulation.reporters.append(pdb_reporter)
     
+    trajectory_dcd_path = os.path.join(e.path, "trajectory.dcd")
+    dcd_reporter = openmm.app.DCDReporter(trajectory_dcd_path, e.FRAME_STRIDE)
+    production_simulation.reporters.append(dcd_reporter)
+    
     state_data_path = os.path.join(e.path, "state_data.csv")
     state_data_reporter = openmm.app.StateDataReporter(
         open(state_data_path, 'w'),
-        e.FRAME_STRIDE * 10 if not e.__TESTING__ else 1,
+        e.FRAME_STRIDE if not e.__TESTING__ else 1,
         step=True,
         time=True,
         potentialEnergy=True,
@@ -329,6 +347,5 @@ def experiment(e: Experiment):
     state = production_simulation.context.getState(getPositions=True, getVelocities=True)
     with open(os.path.join(e.path, "production.pdb"), 'w') as file:
         openmm.app.PDBFile.writeFile(production_simulation.topology, state.getPositions(), file)
-    
 
 experiment.run_if_main()
