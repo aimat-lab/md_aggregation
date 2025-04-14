@@ -71,12 +71,12 @@ PRESSURE: float = 1.0  # in bar
 
 MINIMIZATION_ITERATIONS: int = 5000
 
-RAMP_STEPS: int = 10_000
+RAMP_STEPS: int = 50_000
 EQUILIBRATION_STEPS: int = 100_000
 
-PRODUCTION_STEPS: int = 2_00_000
+PRODUCTION_STEPS: int = 2_000_000
 
-FRAME_STRIDE: int = 1000
+FRAME_STRIDE: int = 10_000
 
 # == EXPERIMENT PARAMETERS ==
 
@@ -157,9 +157,12 @@ def experiment(e: Experiment):
     platform = Platform.getPlatform(0)
     print("Default OpenMM platform:", platform.getName())
 
-    platform = Platform.getPlatformByName('CUDA')
-    print("Using platform:", platform.getName())
-    
+    try:
+        platform = Platform.getPlatformByName('CUDA')
+        print("Using platform:", platform.getName())
+    except:
+        print("CUDA platform not found!")
+
     # ~ Setting up the molecules for the simulation
     e.log('Setting up the MOLECULES...')
     
@@ -308,11 +311,13 @@ def experiment(e: Experiment):
         steps_total += step_batch
         duration = time.time() - time_start
         time_per_step = duration / steps_total
+        time_per_ns = time_per_step * 500_000
         time_remaining = (e.PRODUCTION_STEPS - steps_total) * time_per_step
         eta = datetime.datetime.now() + datetime.timedelta(seconds=time_remaining)
         e.log(f' * {steps_total} steps done'
               f' - {duration:.2f} seconds'
-              f' - {time_per_step:.2f} seconds/step'
+              f' - {time_per_step:.5f} seconds/step'
+              f' - {time_per_ns/3600:.2f} hrs/ns'
               f' - {time_remaining/3600:.2f} hours remaining'
               f' - ETA: {eta.strftime("%Y-%m-%d %H:%M:%S")}')
         

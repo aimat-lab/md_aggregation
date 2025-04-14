@@ -1,4 +1,4 @@
-name: md_simulation
+name: md_aggregation
 channels:
   - conda-forge
 dependencies:
