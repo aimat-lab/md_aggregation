@@ -12,3 +12,4 @@ dependencies:
   - openff-toolkit
   - pip:
     - rdkit
+    - pycomex
