@@ -15,3 +15,4 @@ dependencies:
     - rdkit
     - pycomex
     - git+https://github.com/ParmEd/ParmEd
+    - git+https://github.com/aimat-lab/AutoSlurm
