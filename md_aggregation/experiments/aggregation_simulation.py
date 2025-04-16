@@ -303,9 +303,9 @@ def experiment(e: Experiment):
     
     production_simulation = simulation
     
-    trajectory_path = os.path.join(e.path, "trajectory.pdb")
-    pdb_reporter = openmm.app.PDBReporter(trajectory_path, e.FRAME_STRIDE)
-    production_simulation.reporters.append(pdb_reporter)
+    # trajectory_path = os.path.join(e.path, "trajectory.pdb")
+    # pdb_reporter = openmm.app.PDBReporter(trajectory_path, e.FRAME_STRIDE)
+    # production_simulation.reporters.append(pdb_reporter)
     
     trajectory_dcd_path = os.path.join(e.path, "trajectory.dcd")
     dcd_reporter = openmm.app.DCDReporter(trajectory_dcd_path, e.FRAME_STRIDE)
