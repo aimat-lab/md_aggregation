@@ -39,7 +39,7 @@ MOLECULE_CONFIGURATION: Dict[str, dict] = {
     'ligand': {
         'num': 11,
         'residue_name': 'LIG',
-        'smiles': 'COC1=C(OC)C=C(CN2CC3=C(C=CC4C(C5=CC=CC=C5)=CC(O)OC=43)OC2)C=C1',
+        'smiles': 'C1=CC(=C(C=C1F)F)C(CN2C=NC=N2)(CN3C=NC=N3)O',
         'use_rdkit': True,
     },
     'dmso': {
@@ -78,14 +78,18 @@ MINIMIZATION_ITERATIONS: int = 5000
 RAMP_STEPS: int = 50_000
 EQUILIBRATION_STEPS: int = 100_000
 
-PRODUCTION_STEPS: int = 2_000_000
+PRODUCTION_STEPS: int = 50_000_000
 
 FRAME_STRIDE: int = 10_000
 
+DEVICE_INDEX: int = 0
+
+__PREFIX__ = 'org'
+
 # == EXPERIMENT PARAMETERS ==
 
-__DEBUG__ = True
-__TESTING__ = True
+__DEBUG__ = False
+__TESTING__ = False
 
 experiment = Experiment(
     base_path=folder_path(__file__),
@@ -160,13 +164,15 @@ def experiment(e: Experiment):
     # ~ Platform information
     # Here we want to make sure that the OpenMM simulation will actually use the CUDA acceleration
     platform = Platform.getPlatform(0)
-    print("Default OpenMM platform:", platform.getName())
+    e.log(f"Default OpenMM platform: {platform.getName()}")
 
     try:
         platform = Platform.getPlatformByName('CUDA')
-        print("Using platform:", platform.getName())
-    except:
-        print("CUDA platform not found!")
+        #platform.setPropertyValue()
+        e.log(f"Using platform: {platform.getName()} - Device Index: {e.DEVICE_INDEX}")
+    except Exception as exc:
+        e.log(str(exc))
+        e.log("CUDA platform not found!")
 
     # ~ Setting up the molecules for the simulation
     e.log('Setting up the MOLECULES...')
