@@ -28,11 +28,7 @@ from openff.units import unit as off_unit
 
 # == SIMULATION PARAMETERS ==
 
-BOX_VECTORS: np.ndarray = np.array([
-    [1.0, 0.0, 0.0],
-    [0.5, np.sqrt(3)/2, 0.0],
-    [0.5, 1/(2*np.sqrt(3)), np.sqrt(2/3)]
-])
+BOX_VECTORS: np.ndarray = np.eye(3)
 BOX_SIZE: float = 180 # in angstroms
 
 MOLECULE_CONFIGURATION: Dict[str, dict] = {
@@ -73,10 +69,10 @@ NON_BONDED_CUTOFF: float = 10.0  # in angstroms
 TEMPERATURE: float = 300.0  # in Kelvin
 PRESSURE: float = 1.0  # in bar
 
-MINIMIZATION_ITERATIONS: int = 5000
+MINIMIZATION_ITERATIONS: int = 10_000
 
 RAMP_STEPS: int = 50_000
-EQUILIBRATION_STEPS: int = 100_000
+EQUILIBRATION_STEPS: int = 2_000_000
 
 PRODUCTION_STEPS: int = 50_000_000
 
@@ -280,7 +276,7 @@ def experiment(e: Experiment):
     barostat = openmm.MonteCarloBarostat(
         e.PRESSURE * openmm.unit.bar,
         e.TEMPERATURE * openmm.unit.kelvin,
-        50,
+        25,
     )
     simulation.system.addForce(barostat)
     simulation.context.reinitialize(preserveState=True)
@@ -300,7 +296,6 @@ def experiment(e: Experiment):
     # ~ Production Simulation
     # After the equilibration, we will run the production simulation using the NPT ensemble (constant pressure simulation).
     e.log('Setting up production simulation...')
-    
     production_simulation = simulation
     
     # trajectory_path = os.path.join(e.path, "trajectory.pdb")
