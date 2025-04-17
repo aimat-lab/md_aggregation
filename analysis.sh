@@ -1,4 +1,4 @@
-aslurm -cn haicore_4gpu \
+aslurm -gpt None -gpus None -mt 12 -cn haicore_4gpu \
     cmd "conda activate md_aggregation ; cd /home/iti/tm4030/Programming/md_aggregation/md_aggregation/experiments/results/simulate_aggregation/org__15_04_2025__23_15__87LB ; python /home/iti/tm4030/Programming/md_aggregation/ClusterAnalysis/runClusterAnalysis.py -hb -r 3 -e 4300 -solv HOH -ex DMS CL NA -top topology.pdb -traj trajectory.dcd" \
     cmd "conda activate md_aggregation ; cd /home/iti/tm4030/Programming/md_aggregation/md_aggregation/experiments/results/simulate_aggregation/org__15_04_2025__23_15__JKIa ; python /home/iti/tm4030/Programming/md_aggregation/ClusterAnalysis/runClusterAnalysis.py -hb -r 3 -e 4300 -solv HOH -ex DMS CL NA -top topology.pdb -traj trajectory.dcd" \
     cmd "conda activate md_aggregation ; cd /home/iti/tm4030/Programming/md_aggregation/md_aggregation/experiments/results/simulate_aggregation/org__15_04_2025__23_15__peH9 ; python /home/iti/tm4030/Programming/md_aggregation/ClusterAnalysis/runClusterAnalysis.py -hb -r 3 -e 4300 -solv HOH -ex DMS CL NA -top topology.pdb -traj trajectory.dcd" \
