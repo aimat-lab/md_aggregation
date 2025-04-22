@@ -1,7 +1,7 @@
 #!/bin/bash
 
-{% set analysis_path = project_path + '/ClusterAnalysis/ClusterAnalysis.py' %}
-aslurm -c {{ config }} \
-{% for info in infos %}
+{% set analysis_path = project_path + '/ClusterAnalysis/runClusterAnalysis.py' -%}
+aslurm -c {{ config }} -o env={{ environment }} --gpus_per_task None --NO_gpus None --max_tasks {{ infos|length }} \
+{% for info in infos -%}
     cmd "python {{ analysis_path }} -hb -solv '{{ info["solvent"] }}' -ex '{{ info["exclude"] }}' -e {{ info["end"] }} -traj '{{ info["trajectory_path"] }}' -top '{{ info["topology_path"] }}'" \
 {% endfor %}

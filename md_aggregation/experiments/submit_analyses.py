@@ -1,4 +1,5 @@
 import os
+import re
 import json
 import pathlib
 import rich_click as click
@@ -6,6 +7,7 @@ import tempfile
 import jinja2 as j2
 from rich.pretty import pprint
 from typing import List, Dict, Any
+from pycomex.functional.experiment import Experiment
 
 # This is the path to the folder in which the current file resides and which 
 # will subsequently be used as the anchor to find the other relevant locations in 
@@ -13,8 +15,27 @@ from typing import List, Dict, Any
 PATH = pathlib.Path(__file__).parent.absolute()
 
 
+def sanitize_molecule_fields(input_str):
+    """
+    Removes all occurrences of the pattern starting with ,'molecule' and ending
+    at the next top-level comma (not within brackets/braces).
+    """
+    pattern = r",\s*'molecule'\s*:\s*[^,}]*"
+
+    def replacer(match):
+        s = match.group(0)
+        # Find where to cut: keep last character if it's } or ,
+        for i in range(len(s)):
+            if s[i] in ',}':
+                return ''  # don't include any of the matched portion
+        return ''  # fallback: remove entire matched portion
+
+    # Apply all matches
+    return re.sub(pattern, replacer, input_str)
+
+
 @click.command()
-@click.option('-c', '--config', type=click.STRING, default='haicore_4gpu', show_default=True,
+@click.option('-c', '--config', type=click.STRING, default='haicore_1gpu', show_default=True,
               help='AutoSlurm configuration under wich to submit the jobs.')
 @click.option('-p', '--bash-path', type=click.Path(), show_default=True,
               default=os.path.join(tempfile.gettempdir(), 'submit_analyses.sh'),
@@ -23,7 +44,9 @@ PATH = pathlib.Path(__file__).parent.absolute()
               help='The cutoff distance in angstroms for the clustering algorithm.')
 @click.option('-s', '--submit', is_flag=True, default=False,
               help='Submit the job to the SLURM queue after contructing the bash script.')
-def main(config: str, bash_path: str, cutoff: float, submit: bool):
+@click.option('-e', '--environment', type=click.STRING, default='md_aggregation', show_default=True,
+              help='The conda environment to be activated to execute the analysis script.')
+def main(config: str, bash_path: str, cutoff: float, submit: bool, environment: str):
     """
     This script will iterate over all the individual experiment archives in the "results" folder 
     and if there are any experiments which are derived from the "aggregation_simulation.py" base 
@@ -87,12 +110,13 @@ def main(config: str, bash_path: str, cutoff: float, submit: bool):
     
     for path in relevant_archive_folders:
         
-        metadata_path = path / 'metadata.json'
+        metadata_path = path / 'experiment_meta.json'
         with open(metadata_path, 'r') as file:
             content = file.read()
             metadata = json.loads(content)
         
-        molecule_config = metadata['parameters']['MOLECULE_CONFIGURATION']
+        molecule_config_raw = sanitize_molecule_fields(metadata['parameters']['MOLECULE_CONFIGURATION']['value'])
+        molecule_config = eval(molecule_config_raw)
         
         info = {
             'path': path,
@@ -112,14 +136,15 @@ def main(config: str, bash_path: str, cutoff: float, submit: bool):
     # construct the bash script that defines the correct commands to schedule all the analysis scripts 
     # to the SLURM queue.
     content = template.render({
-        'project_path': path.parent.parent.absolute(),
+        'environment': environment,
+        'project_path': str(PATH.parent.parent.absolute()),
         'config': config,
         'archive_folders': relevant_archive_folders,
         'infos': relevant_infos,
         'cutoff': cutoff,
     })
     
-    with open(bash_path) as file:
+    with open(bash_path, mode='w') as file:
         file.write(content)
 
     click.echo(f'DONE - bash script written @ {bash_path}!')
